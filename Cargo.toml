@@ -1,0 +1,19 @@
+[package]
+name = "fontgen"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["std"]
+std = []
+codegen = ["std"]
+codegen_warnings = []
+
+[workspace]
+members = ["test/build-single"]
+
+[dependencies]
+phf = "0.11.2"
+phf_codegen = "0.11.2"
+phf_shared = "0.11.2"
+bdf = "0.6.0"
