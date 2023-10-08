@@ -3,7 +3,12 @@ use core as std;
 
 use std::fmt::{Display, Formatter};
 use std::hash::Hasher;
-use phf_shared::{FmtConst, PhfBorrow, PhfHash};
+use phf_shared::{PhfBorrow, PhfHash};
+pub use phf;
+
+#[cfg(feature = "codegen")]
+use phf_shared::FmtConst;
+
 
 #[cfg(feature = "codegen")]
 pub mod codegen;
@@ -15,7 +20,7 @@ pub mod codegen;
 // Todo users of this library may want to ensure that all weights are spelled the same, a test is provided for this.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Copy, Clone)]
 pub struct FontWeight {
-    inner: &'static str,
+    pub inner: &'static str,
 }
 
 impl Display for FontWeight {
@@ -50,11 +55,30 @@ impl PhfBorrow<FontWeight> for FontWeight {
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug, Clone, Copy)]
 #[cfg_attr(feature = "codegen", derive(Hash))]
 pub struct FontSize {
-    width: u16,
-    height: u16,
+    pub width: u32,
+    pub height: u32,
 }
+
+impl From<(u32,u32)> for FontSize {
+    fn from(value: (u32, u32)) -> Self {
+        Self {
+            width: value.0,
+            height: value.1,
+        }
+    }
+}
+
+pub type ConstFontMap = phf::Map<FontWeight,phf::Map<FontSize,phf::Map<char,&'static [u8]>>>; // what a mess
 pub struct Font {
-    pub font: &'static phf::Map<FontWeight,phf::Map<FontSize,phf::Map<char,&'static [u8]>>> // what a mess
+    font: &'static ConstFontMap
+}
+
+impl From<&'static ConstFontMap> for Font {
+    fn from(value: &'static ConstFontMap) -> Self {
+        Self {
+            font: value
+        }
+    }
 }
 
 impl PhfBorrow<FontSize> for FontSize {
@@ -65,8 +89,8 @@ impl PhfBorrow<FontSize> for FontSize {
 
 impl PhfHash for FontSize {
     fn phf_hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u16(self.width);
-        state.write_u16(self.height);
+        state.write_u32(self.width);
+        state.write_u32(self.height);
     }
 }
 
@@ -117,7 +141,7 @@ impl Font {
         ret
     }
 
-    fn get(&self, weight: FontWeight, size: FontSize, ch: char ) -> Option<BitMap> {
+    pub fn get(&self, weight: FontWeight, size: FontSize, ch: char ) -> Option<BitMap> {
         Some(
             BitMap {
                 size,
@@ -127,7 +151,7 @@ impl Font {
     }
 }
 
-struct BitMap {
+pub struct BitMap {
     size: FontSize,
     map: &'static [u8]
 }
@@ -135,17 +159,17 @@ struct BitMap {
 impl BitMap {
 
     /// Returns the raw bitmap
-    fn raw(&self) -> &'static [u8] {
+    pub fn raw(&self) -> &'static [u8] {
         self.map
     }
 
     /// Returns the size of the font face.
-    fn size(&self) -> FontSize {
+    pub fn size(&self) -> FontSize {
         self.size
     }
 
     /// Converts the bitmap using calling `f` on each pixel to perform the conversion and writing the result into the buffer.
-    fn convert<F, T>(&self, f: F, buff: &mut [T])
+    pub fn convert<F, T>(&self, f: F, buff: &mut [T])
         where F: Fn(bool) -> T
     {
         for i in 0..(self.size.width * self.size.height) as usize {
@@ -164,8 +188,8 @@ impl BitMap {
     ///
     /// # Panics
     ///
-    /// This fn will panic if `buff` does not provide enough scan lines or pixels in a scan line
-    fn convert_fb<F,T>(&self, f: F, buff: &mut [&mut[T]])
+    /// This fn will panic if `buff` does not provide enough scan lines or pixels within a scan line
+    pub fn convert_fb<F,T>(&self, f: F, buff: &mut [&mut[T]])
         where F: Fn(bool) -> T
     {
         for scan in 0..self.size.height as usize {

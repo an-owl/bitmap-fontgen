@@ -7,7 +7,6 @@ edition = "2021"
 default = ["std"]
 std = []
 codegen = ["std"]
-codegen_warnings = []
 
 [workspace]
 members = ["test/build-single"]

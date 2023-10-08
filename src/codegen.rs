@@ -1,9 +1,8 @@
-use std::io::BufWriter;
 use super::*;
 use std::path::PathBuf;
 
 struct GenMeta {
-    name: String,
+    _name: String,
     weight: GenWeight,
     size: FontSize,
 }
@@ -31,7 +30,7 @@ impl PhfBorrow<GenWeight> for GenWeight {
 
 impl FmtConst for GenWeight {
     fn fmt_const(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"::{name} {{data: {s}}}",name = std::any::type_name::<FontWeight>(),s = self.data)
+        write!(f,"::{name} {{inner: \"{s}\"}}",name = std::any::type_name::<FontWeight>(),s = self.data)
     }
 }
 
@@ -56,13 +55,13 @@ pub fn gen_font<T: std::io::Write>(files: Vec<PathBuf>, target: &mut T) {
     let mut weight_map = phf_codegen::Map::new();
     for (weight, fonts) in internal_weight_map {
         let mut size_map = phf_codegen::Map::new();
-        for (i,m) in fonts {
-            size_map.entry(m.size,&i.build().to_string());
+        for (mut i,m) in fonts {
+            size_map.entry(m.size,&i.phf_path("fontgen::phf").build().to_string());
         }
-        weight_map.entry(weight,&size_map.build().to_string());
+        weight_map.entry(weight,&size_map.phf_path("fontgen::phf").build().to_string());
     }
 
-    write!(target,"{}",weight_map.build()).unwrap();
+    write!(target,"{}",weight_map.phf_path("fontgen::phf").build()).unwrap();
 }
 
 fn get_weight(file: &PathBuf) -> String {
@@ -89,9 +88,9 @@ fn compile_file(file: &PathBuf,name: &str) -> (phf_codegen::Map<char>,GenMeta) {
     assert_eq!(name, font.name(), "Multiple faces found {} & {} did not match", name, font.name());
 
     let m = GenMeta {
-        name: name.to_string(),
+        _name: name.to_string(),
         weight: GenWeight{data: weight},
-        size: FontSize { width: font.size().x, height: font.size().y },
+        size: FontSize { width: font.bounds().width, height: font.bounds().height },
     };
 
     let mut map = phf_codegen::Map::new();
@@ -105,7 +104,7 @@ fn compile_file(file: &PathBuf,name: &str) -> (phf_codegen::Map<char>,GenMeta) {
         // iterate over pixels set one bits when necessary
         for (i,(_,p)) in g.pixels().enumerate() {
             let byte = i/8;
-            let bit = 1%8;
+            let bit = i%8;
             if p {
                 pxarr[byte] |= 1 << bit;
             }
