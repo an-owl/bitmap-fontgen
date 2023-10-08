@@ -1,0 +1,13 @@
+[package]
+name = "build-single-file"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fontgen = {path = "../../"}
+bdf = "0.6.0"
+
+[build-dependencies]
+fontgen = {path = "../../", features = ["codegen"]}
