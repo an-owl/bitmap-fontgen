@@ -179,25 +179,14 @@ impl BitMap {
         }
     }
 
-    /// Converts the bitmap calling `f` to perform the conversion similarly to [Self::convert].
-    /// `f` is intentionally the same used by [Self::convert].
-    /// This version takes a 2 dimensional slice allowing the bitmap do be directly drawn into a
-    /// framebuffer where the first dimension is the scan line and the second is the column `buff\[scan\]\[px\].
-    ///
-    /// The caller should ensure that each slice points to the same column otherwise the glyph will be drawn incorrectly
-    ///
-    /// # Panics
-    ///
-    /// This fn will panic if `buff` does not provide enough scan lines or pixels within a scan line
-    pub fn convert_fb<F,T>(&self, f: F, buff: &mut [&mut[T]])
+    pub fn draw_scan<F,T>(&self, scan: u32, f: F, buff: &mut[T])
         where F: Fn(bool) -> T
     {
-        for scan in 0..self.size.height as usize {
-            for p in 0..self.size.width as usize {
-                let byte = p / u8::BITS as usize;
-                let bit = p % u8::BITS as usize;
-                buff[scan][p] = f(self.map[byte] & 1 << bit != 0)
-            }
+        let mut start = self.size.width * scan;
+        for i in start..start + self.size.width {
+            let byte = (i / u8::BITS) as usize;
+            let bit = (i % u8::BITS) as usize;
+            buff[i as usize] = f(self.map[byte] & 1<<bit != 0);
         }
     }
 }
