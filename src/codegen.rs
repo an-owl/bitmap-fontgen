@@ -7,10 +7,9 @@ struct GenMeta {
     size: FontSize,
 }
 
-#[derive(Clone)]
-#[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 struct GenWeight {
-    data: String
+    data: String,
 }
 
 impl PhfHash for GenWeight {
@@ -27,41 +26,50 @@ impl PhfBorrow<GenWeight> for GenWeight {
     }
 }
 
-
 impl FmtConst for GenWeight {
     fn fmt_const(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"::{name} {{inner: \"{s}\"}}",name = std::any::type_name::<FontWeight>(),s = self.data)
+        write!(
+            f,
+            "::{name} {{inner: \"{s}\"}}",
+            name = std::any::type_name::<FontWeight>(),
+            s = self.data
+        )
     }
 }
 
 /// Generates the given fonts into the target file
 pub fn gen_font<T: std::io::Write>(files: Vec<PathBuf>, target: &mut T) {
-
     for i in &files {
-        assert!(i.exists(),"File not found: {}",i.display())
+        assert!(i.exists(), "File not found: {}", i.display())
     }
-    let face = bdf::open(&files[0]).unwrap().name().to_string();
+    let face = get_face(bdf::open(&files[0]).unwrap().name());
 
-    let mut internal_weight_map: std::collections::BTreeMap<GenWeight, Vec<(phf_codegen::Map<char>, GenMeta)>> = std::collections::BTreeMap::new();
+    let mut internal_weight_map: std::collections::BTreeMap<
+        GenWeight,
+        Vec<(phf_codegen::Map<char>, GenMeta)>,
+    > = std::collections::BTreeMap::new();
     for i in &files {
-        let t = compile_file(i,&face);
+        let t = compile_file(i, &face);
         if let Some(arr) = internal_weight_map.get_mut(&t.1.weight) {
             arr.push(t)
         } else {
-            internal_weight_map.insert(t.1.weight.clone(),vec![t]);
+            internal_weight_map.insert(t.1.weight.clone(), vec![t]);
         }
     }
 
     let mut weight_map = phf_codegen::Map::new();
     for (weight, fonts) in internal_weight_map {
         let mut size_map = phf_codegen::Map::new();
-        for (mut i,m) in fonts {
-            size_map.entry(m.size,&i.phf_path("fontgen::phf").build().to_string());
+        for (mut i, m) in fonts {
+            size_map.entry(m.size, &i.phf_path("fontgen::phf").build().to_string());
         }
-        weight_map.entry(weight,&size_map.phf_path("fontgen::phf").build().to_string());
+        weight_map.entry(
+            weight,
+            &size_map.phf_path("fontgen::phf").build().to_string(),
+        );
     }
 
-    write!(target,"{}",weight_map.phf_path("fontgen::phf").build()).unwrap();
+    write!(target, "{}", weight_map.phf_path("fontgen::phf").build()).unwrap();
 }
 
 fn get_weight(file: &PathBuf) -> String {
@@ -77,39 +85,60 @@ fn get_weight(file: &PathBuf) -> String {
     }
 
     panic!("Unable to parse {}", file.display())
-
 }
 
-fn compile_file(file: &PathBuf,name: &str) -> (phf_codegen::Map<char>,GenMeta) {
+fn get_face(name: &str) -> String {
+    name.split('-').nth(2).expect(&format!("Found invalid name format")).to_string()
+}
 
+fn compile_file(file: &PathBuf, tgt_name: &str) -> (phf_codegen::Map<char>, GenMeta) {
     // gather metadata
     let weight = get_weight(file);
     let font = bdf::open(file).unwrap();
-    assert_eq!(name, font.name(), "Multiple faces found {} & {} did not match", name, font.name());
+    let name = get_face(font.name());
+    assert_eq!(
+        tgt_name,
+        name,
+        "Multiple faces found {} & {} did not match",
+        tgt_name,
+        name
+    );
 
     let m = GenMeta {
         _name: name.to_string(),
-        weight: GenWeight{data: weight},
-        size: FontSize { width: font.bounds().width, height: font.bounds().height },
+        weight: GenWeight { data: weight },
+        size: FontSize {
+            width: font.bounds().width,
+            height: font.bounds().height,
+        },
     };
 
     let mut map = phf_codegen::Map::new();
 
     // iterate over chars
-    for (c,g) in font.glyphs() {
-
+    for (c, g) in font.glyphs() {
         let mut pxarr = Vec::<u8>::new();
-        pxarr.resize((m.size.width*m.size.height) as usize/8,0);
+
+        // todo watch https://github.com/rust-lang/rust/issues/88581 and use div_ciel
+        let pixarr_len = {
+            if (m.size.width * m.size.height) as usize % 8 != 0 {
+                ((m.size.width * m.size.height) as usize / 8) + 1
+            } else {
+                (m.size.width * m.size.height) as usize / 8
+            }
+        };
+
+        pxarr.resize(pixarr_len, 0);
 
         // iterate over pixels set one bits when necessary
-        for (i,(_,p)) in g.pixels().enumerate() {
-            let byte = i/8;
-            let bit = i%8;
+        for (i, (_, p)) in g.pixels().enumerate() {
+            let byte = i / 8;
+            let bit = i % 8;
             if p {
                 pxarr[byte] |= 1 << bit;
             }
         }
-        map.entry(*c,&format!("&{:?}",&*pxarr));
+        map.entry(*c, &format!("&{:?}", &*pxarr));
     }
-    (map,m)
+    (map, m)
 }
