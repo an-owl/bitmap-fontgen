@@ -1,14 +1,13 @@
 #[cfg(not(feature = "std"))]
 use core as std;
 
+pub use phf;
+use phf_shared::{PhfBorrow, PhfHash};
 use std::fmt::{Display, Formatter};
 use std::hash::Hasher;
-use phf_shared::{PhfBorrow, PhfHash};
-pub use phf;
 
 #[cfg(feature = "codegen")]
 use phf_shared::FmtConst;
-
 
 #[cfg(feature = "codegen")]
 pub mod codegen;
@@ -25,13 +24,13 @@ pub struct FontWeight {
 
 impl Display for FontWeight {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",self.inner)
+        write!(f, "{}", self.inner)
     }
 }
 
 impl From<&'static str> for FontWeight {
     fn from(value: &'static str) -> Self {
-        Self {inner: value}
+        Self { inner: value }
     }
 }
 
@@ -59,7 +58,7 @@ pub struct FontSize {
     pub height: u32,
 }
 
-impl From<(u32,u32)> for FontSize {
+impl From<(u32, u32)> for FontSize {
     fn from(value: (u32, u32)) -> Self {
         Self {
             width: value.0,
@@ -68,16 +67,14 @@ impl From<(u32,u32)> for FontSize {
     }
 }
 
-pub type ConstFontMap = phf::Map<FontWeight,phf::Map<FontSize,phf::Map<char,&'static [u8]>>>; // what a mess
+pub type ConstFontMap = phf::Map<FontWeight, phf::Map<FontSize, phf::Map<char, &'static [u8]>>>; // what a mess
 pub struct Font {
-    font: &'static ConstFontMap
+    font: &'static ConstFontMap,
 }
 
 impl From<&'static ConstFontMap> for Font {
     fn from(value: &'static ConstFontMap) -> Self {
-        Self {
-            font: value
-        }
+        Self { font: value }
     }
 }
 
@@ -97,10 +94,9 @@ impl PhfHash for FontSize {
 #[cfg(feature = "codegen")]
 impl FmtConst for FontSize {
     fn fmt_const(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"::{}::{:?}",module_path!(),self)
+        write!(f, "::{}::{:?}", module_path!(), self)
     }
 }
-
 
 impl Font {
     /// Returns all font weights available
@@ -109,11 +105,11 @@ impl Font {
     }
 
     /// Returns the font sizes and whether they are available for all weights.
-    pub fn sizes(&self) -> Vec<(FontSize,bool)> {
+    pub fn sizes(&self) -> Vec<(FontSize, bool)> {
         let mut cmp: Vec<Vec<FontSize>> = Vec::new();
-        for (_,i) in self.font{
+        for (_, i) in self.font {
             cmp.push(i.keys().map(|e| *e).collect())
-        };
+        }
 
         for i in &mut cmp {
             i.sort();
@@ -132,32 +128,35 @@ impl Font {
                     }
                 }
             }
-            ret.push((i,true))
+            ret.push((i, true))
         }
 
-        ret.append(&mut haystack.iter().flatten().map(|e| (*e,false)).collect::<Vec<(FontSize,bool)>>()); // flattens 2d arr into 1d. maps each so each element
-        ret.sort_by(|(e,_), (u,_)| e.cmp(u) ); // sorts ignoring the bool
+        ret.append(
+            &mut haystack
+                .iter()
+                .flatten()
+                .map(|e| (*e, false))
+                .collect::<Vec<(FontSize, bool)>>(),
+        ); // flattens 2d arr into 1d. maps each so each element
+        ret.sort_by(|(e, _), (u, _)| e.cmp(u)); // sorts ignoring the bool
         ret.dedup();
         ret
     }
 
-    pub fn get(&self, weight: FontWeight, size: FontSize, ch: char ) -> Option<BitMap> {
-        Some(
-            BitMap {
-                size,
-                map: self.font.get(&weight)?.get(&size)?.get(&ch).unwrap()
-            }
-        )
+    pub fn get(&self, weight: FontWeight, size: FontSize, ch: char) -> Option<BitMap> {
+        Some(BitMap {
+            size,
+            map: self.font.get(&weight)?.get(&size)?.get(&ch).unwrap(),
+        })
     }
 }
 
 pub struct BitMap {
     size: FontSize,
-    map: &'static [u8]
+    map: &'static [u8],
 }
 
 impl BitMap {
-
     /// Returns the raw bitmap
     pub fn raw(&self) -> &'static [u8] {
         self.map
@@ -170,23 +169,25 @@ impl BitMap {
 
     /// Converts the bitmap using calling `f` on each pixel to perform the conversion and writing the result into the buffer.
     pub fn convert<F, T>(&self, f: F, buff: &mut [T])
-        where F: Fn(bool) -> T
+    where
+        F: Fn(bool) -> T,
     {
         for i in 0..(self.size.width * self.size.height) as usize {
             let byte = i / u8::BITS as usize;
             let bit = i % u8::BITS as usize;
-            buff[i] = f(self.map[byte] & 1<<bit != 0);
+            buff[i] = f(self.map[byte] & 1 << bit != 0);
         }
     }
 
-    pub fn draw_scan<F,T>(&self, scan: u32, f: F, buff: &mut[T])
-        where F: Fn(bool) -> T
+    pub fn draw_scan<F, T>(&self, scan: u32, f: F, buff: &mut [T])
+    where
+        F: Fn(bool) -> T,
     {
-        let mut start = self.size.width * scan;
+        let start = self.size.width * scan;
         for i in start..start + self.size.width {
             let byte = (i / u8::BITS) as usize;
             let bit = (i % u8::BITS) as usize;
-            buff[i as usize] = f(self.map[byte] & 1<<bit != 0);
+            buff[i as usize] = f(self.map[byte] & 1 << bit != 0);
         }
     }
 }
