@@ -5,14 +5,14 @@ edition = "2021"
 
 [features]
 default = ["std"]
-std = ["phf/default"]
-codegen = ["std"]
+std = ["phf/default", "phf_shared/default", "dep:phf_codegen"]
+codegen = ["std","dep:bdf"]
 
 [workspace]
 members = ["test/build-single"]
 
 [dependencies]
 phf = { version = "0.11.2", default-features = false }
-phf_codegen = "0.11.2"
-phf_shared = "0.11.2"
-bdf = "0.6.0"
+phf_codegen = { version = "0.11.2", optional = true }
+phf_shared = { version = "0.11.2", default-features = false }
+bdf = { version = "0.6.0", optional = true }
