@@ -1,10 +1,16 @@
+#![cfg_attr(not(feature = "std"),no_std)]
+#[cfg(feature = "std")]
+use std as core;
+#[cfg(feature = "std")]
+use std as alloc;
+
 #[cfg(not(feature = "std"))]
-use core as std;
+extern crate alloc;
 
 pub use phf;
 use phf_shared::{PhfBorrow, PhfHash};
-use std::fmt::{Display, Formatter};
-use std::hash::Hasher;
+use alloc::fmt::{Display, Formatter};
+use core::hash::Hasher;
 
 #[cfg(feature = "codegen")]
 use phf_shared::FmtConst;
@@ -23,7 +29,7 @@ pub struct FontWeight {
 }
 
 impl Display for FontWeight {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> alloc::fmt::Result {
         write!(f, "{}", self.inner)
     }
 }
@@ -100,13 +106,13 @@ impl FmtConst for FontSize {
 
 impl Font {
     /// Returns all font weights available
-    pub fn weights(&self) -> Vec<FontWeight> {
+    pub fn weights(&self) -> alloc::vec::Vec<FontWeight> {
         self.font.keys().map(|e| *e).collect()
     }
 
     /// Returns the font sizes and whether they are available for all weights.
-    pub fn sizes(&self) -> Vec<(FontSize, bool)> {
-        let mut cmp: Vec<Vec<FontSize>> = Vec::new();
+    pub fn sizes(&self) -> alloc::vec::Vec<(FontSize, bool)> {
+        let mut cmp: alloc::vec::Vec<alloc::vec::Vec<FontSize>> = alloc::vec::Vec::new();
         for (_, i) in self.font {
             cmp.push(i.keys().map(|e| *e).collect())
         }
@@ -116,7 +122,7 @@ impl Font {
         }
         let needle = cmp.pop().expect("Why is this empty (•ิ_•ิ)?");
         let haystack = cmp;
-        let mut ret = Vec::new();
+        let mut ret = alloc::vec::Vec::new();
 
         'needle: for i in needle {
             'haystack: for j in &haystack {
@@ -136,7 +142,7 @@ impl Font {
                 .iter()
                 .flatten()
                 .map(|e| (*e, false))
-                .collect::<Vec<(FontSize, bool)>>(),
+                .collect::<alloc::vec::Vec<(FontSize, bool)>>(),
         ); // flattens 2d arr into 1d. maps each so each element
         ret.sort_by(|(e, _), (u, _)| e.cmp(u)); // sorts ignoring the bool
         ret.dedup();
