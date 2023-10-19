@@ -1,6 +1,8 @@
 use super::*;
 use std::path::PathBuf;
 
+const CRATE_NAME: &str = "bitmap_fontgen";
+
 struct GenMeta {
     _name: String,
     weight: GenWeight,
@@ -61,15 +63,15 @@ pub fn gen_font<T: std::io::Write>(files: Vec<PathBuf>, target: &mut T) {
     for (weight, fonts) in internal_weight_map {
         let mut size_map = phf_codegen::Map::new();
         for (mut i, m) in fonts {
-            size_map.entry(m.size, &i.phf_path("fontgen::phf").build().to_string());
+            size_map.entry(m.size, &i.phf_path(&format!("::{CRATE_NAME}::phf")).build().to_string());
         }
         weight_map.entry(
             weight,
-            &size_map.phf_path("fontgen::phf").build().to_string(),
+            &size_map.phf_path(&format!("::{CRATE_NAME}::phf")).build().to_string(),
         );
     }
 
-    write!(target, "{}", weight_map.phf_path("fontgen::phf").build()).unwrap();
+    write!(target, "{}", weight_map.phf_path(&format!("::{CRATE_NAME}::phf")).build()).unwrap();
 }
 
 fn get_weight(file: &PathBuf) -> String {
