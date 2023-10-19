@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fontgen = {path = "../../"}
+bitmap-fontgen = {path = "../../"}
 bdf = "0.6.0"
 
 [build-dependencies]
-fontgen = {path = "../../", features = ["codegen"]}
+bitmap-fontgen = {path = "../../", features = ["codegen"]}
