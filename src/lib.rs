@@ -186,14 +186,14 @@ impl BitMap {
     }
 
     pub fn draw_scan<F, T>(&self, scan: u32, f: F, buff: &mut [T])
-    where
-        F: Fn(bool) -> T,
+        where
+            F: Fn(bool) -> T,
     {
-        let start = self.size.width * scan;
-        for i in start..start + self.size.width {
+        let start = self.size().width * scan;
+        for (i,p) in (start..start + self.size.width).zip(buff) {
             let byte = (i / u8::BITS) as usize;
             let bit = (i % u8::BITS) as usize;
-            buff[i as usize] = f(self.map[byte] & 1 << bit != 0);
+            *p = f(self.map[byte] & 1 << bit != 0);
         }
     }
 }
