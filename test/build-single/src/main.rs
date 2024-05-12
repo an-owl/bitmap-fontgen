@@ -3,7 +3,7 @@ use std::path::Path;
 fn main() {
     let test_char: char = std::env::var("FONTGEN_TEST_CHAR").map(|v| v.chars().next().expect("FONTGEN_TEST_CHAR was null")).unwrap_or('a');
 
-    let f = fontgen::Font::from(&font_map::FONT);
+    let f = bitmap_fontgen::Font::from(&font_map::FONT);
     assert_eq!(f.weights().len(),1,"Incorrect number of font weights Expected 1 found {}",f.weights().len());
     assert_eq!(f.weights()[0],"Medium".into());
     assert_eq!(f.sizes().len(),1,"Incorrect number of sizes found: Expected 1 found {}",f.sizes().len());
@@ -24,5 +24,5 @@ fn main() {
 }
 
 mod font_map {
-    pub static FONT: fontgen::ConstFontMap = include!(env!("FONT_FILE"));
+    pub static FONT: bitmap_fontgen::ConstFontMap = include!(env!("FONT_FILE"));
 }
