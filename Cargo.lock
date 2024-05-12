@@ -8,7 +8,16 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f550a6818e6f42ccd5883f44e45fff4f68415a0d09abdc81e7d1d78e0780af14"
 dependencies = [
- "bit-set",
+ "bit-set 0.3.0",
+ "thiserror",
+]
+
+[[package]]
+name = "bdf"
+version = "0.7.0"
+source = "git+https://github.com/meh/rust-bdf#2eceb6634bf4932cc877a69d574c86994c0cf883"
+dependencies = [
+ "bit-set 0.5.3",
  "thiserror",
 ]
 
@@ -17,6 +26,15 @@ name = "bit-set"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84527c7b0452f22545cc010e72d366a435561d2b28b978035550b3778c4d428d"
+dependencies = [
+ "bit-vec",
+]
+
+[[package]]
+name = "bit-set"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0700ddab506f33b20a03b13996eccd309a48e5ff77d0d95926aa0210fb4e95f1"
 dependencies = [
  "bit-vec",
 ]
@@ -31,7 +49,7 @@ checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
 name = "bitmap-fontgen"
 version = "0.1.0"
 dependencies = [
- "bdf",
+ "bdf 0.7.0",
  "phf",
  "phf_codegen",
  "phf_shared",
@@ -41,7 +59,7 @@ dependencies = [
 name = "build-single-file"
 version = "0.1.0"
 dependencies = [
- "bdf",
+ "bdf 0.6.0",
  "bitmap-fontgen",
 ]
 
