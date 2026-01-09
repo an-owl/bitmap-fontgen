@@ -152,7 +152,7 @@ impl Font {
     pub fn get(&self, weight: FontWeight, size: FontSize, ch: char) -> Option<BitMap> {
         Some(BitMap {
             size,
-            map: self.font.get(&weight)?.get(&size)?.get(&ch).unwrap(),
+            map: self.font.get(&weight)?.get(&size)?.get(&ch)?,
         })
     }
 }
